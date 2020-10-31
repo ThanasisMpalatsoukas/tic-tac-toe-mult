@@ -205,7 +205,7 @@
                 }
             }
 
-            if (moveObj[i] === 1 || moveObj[i] === 2) {
+            if ([1,2].includes(moveObj[1]) && [1,2].includes(moveObj[5]) && [1,2].includes(moveObj[7]) && [1,2].includes(moveObj[9]) ) {
                 if (moveObj[1] === moveObj[5] && moveObj[5] === moveObj[9]) {
                     return moveObj[5];
                 }
