@@ -1,0 +1,121 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Tic tac toe socket.io</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/style.css">
+  </head>
+  <body>
+    
+    <div class="container mt-5">
+        <div class="row box-container">
+            <div class="col-lg-4 border" data-sq="1"></div>
+            <div class="col-lg-4 border" data-sq="2"></div>
+            <div class="col-lg-4 border" data-sq="3"></div>
+        </div>
+        <div class="row box-container">
+            <div class="col-lg-4 border" data-sq="4"></div>
+            <div class="col-lg-4 border" data-sq="5"></div>
+            <div class="col-lg-4 border" data-sq="6"></div>
+        </div>
+        <div class="row box-container">
+            <div class="col-lg-4 border" data-sq="7"></div>
+            <div class="col-lg-4 border" data-sq="8"></div>
+            <div class="col-lg-4 border" data-sq="9"></div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+
+    const ticTacToe = (function(){
+        let squares = document.querySelectorAll(".box-container > div");
+        const squaresSelected = [];
+        let user = -1;
+        let moveExecuted = -1;
+
+        const socket = io();
+        socket.on('played', (move) => {
+            if (move.user === user) {
+                moveExecuted = true;
+            } else {
+                moveExecuted = false;
+            }
+
+            squaresSelected.push(move.squarepos);
+            
+            squares.forEach(item => {
+                console.log(item.getAttribute('data-sq') , move.squarepos);
+                if (item.getAttribute('data-sq') == move.squarepos) {
+                    item.innerHTML = move.user;
+                }
+            });
+        });
+
+        socket.on('userid', (id) => {
+            if (user === -1) {
+                if (id === 1) {
+                    moveExecuted = false;
+                } else {
+                    moveExecuted = true;
+                }
+                user = id;
+            }
+        })
+
+        socket.emit('username');
+        
+        const isItAlreadyMarked = (block) => {
+            return squaresSelected.includes(block);
+        }
+
+        const showCurrentPlayer = (e) => {
+            if (isItAlreadyMarked(e.currentTarget.getAttribute('data-sq'))) {
+                return;
+            }
+
+            e.currentTarget.innerHTML = user;
+        }
+
+        const removeCurrentPlayer = (e) => {
+            if (isItAlreadyMarked(e.currentTarget.getAttribute('data-sq'))) {
+                return;
+            }
+
+            e.currentTarget.innerHTML = '';
+        }
+
+        const addPlayerSign = (e) => {
+            const squarepos = e.currentTarget.getAttribute('data-sq');
+            console.log(moveExecuted);
+            if (isItAlreadyMarked(squarepos) || moveExecuted) {
+                return;
+            }
+
+            e.currentTarget.innerHTML = user;
+            squaresSelected.push(squarepos);
+
+            // Inform backend the player played:
+            socket.emit('played', {squarepos, user});
+        }
+
+        squares.forEach(item => item.addEventListener("mouseenter", showCurrentPlayer));
+        squares.forEach(item => item.addEventListener("mouseleave", removeCurrentPlayer));
+        squares.forEach(item => item.addEventListener("click", addPlayerSign));
+    })();
+
+    // $(function () {
+    //     var socket = io();
+    //     $('form').submit(function(e) {
+    //         e.preventDefault(); // prevents page reloading
+    //         socket.emit('chat message', $('#m').val());
+    //         $('#m').val('');
+    //         return false;
+    //     });
+    //     socket.on('chat message', function(msg){
+    //         $('#messages').append($('<li>').text(msg));
+    //     });
+    //});
+    </script>
+  </body>
+</html>
