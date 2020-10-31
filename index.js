@@ -13,6 +13,9 @@ let userCount = 0;
 
 io.on('connection', (socket) => {
 
+
+    io.emit('new_connection', userCount);
+
     userCount++;
 
     socket.on('username', () => {
@@ -21,10 +24,10 @@ io.on('connection', (socket) => {
 
     socket.on('disconnect', () => {
         userCount--;
+        io.emit('player_disconnected', (userCount));
     });
 
     socket.on('played', (move) => {
-        console.log(move);
         io.emit('played', move);
     });
 

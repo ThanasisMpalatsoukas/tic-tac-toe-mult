@@ -7,6 +7,22 @@
     <link rel="stylesheet" href="/style.css">
   </head>
   <body>
+
+    <div class="modal" id="modal" tabindex="-1" role="dialog" style="display: block;">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Searching for player...</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+                    <p>please wait...</p>
+            </div>
+            </div>
+        </div>
+    </div>
     
     <div class="container mt-5">
         <div class="row">
@@ -51,6 +67,8 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
 
+    const socket = io();
+
     const ticTacToe = (function(){
 
 
@@ -62,6 +80,22 @@
 
         let squares = document.querySelectorAll(".box");
         const squaresSelected = {};
+
+        /**
+         * Check if another player has got into the game 
+         */
+         let currentPlayerCount = -1;
+
+        socket.on('new_connection', (userCount) => {
+            console.log(userCount);
+            if (userCount < 3) {
+                currentPlayerCount = (userCount+1) % 2;
+                if (currentPlayerCount === 0) {
+                    document.getElementById("modal").style.display = "none";
+                }
+            }
+        });
+
         initializeSquares();
 
         let user = -1;
@@ -69,7 +103,6 @@
         let w2score = document.getElementById("score-2");
         let w1score = document.getElementById("score-1");
 
-        const socket = io();
         socket.on('played', (move) => {
             if (move.user === user) {
                 moveExecuted = true;
@@ -80,19 +113,34 @@
             squaresSelected[move.squarepos] = move.user;
 
             let winner = checkWinner(squaresSelected);
-            console.log(winner);
+
             if (winner === 2) {
                 w2score.innerHTML = parseInt(w2score.innerHTML) + 1;
+                if (user === 2) {
+                    moveExecuted = true;
+                }
                 clearGame();
                 return
             } else if (winner === 1) {
                 w1score.innerHTML = parseInt(w1score.innerHTML) + 1;
+                if (user === 1) {
+                    moveExecuted = false;
+                }
                 clearGame();
                 return;
             }
+
+            if (checkUserPlays(squaresSelected) === 9) {
+                clearGame();
+                if (user === 2) {
+                    moveExecuted = true;
+                }
+                if (user === 1) {
+                    moveExecuted = false;
+                }
+            }
             
             squares.forEach(item => {
-                console.log(item.getAttribute('data-sq') , move.squarepos);
                 if (item.getAttribute('data-sq') == move.squarepos) {
                     let signImg = generateImagePerUser(move.user);
                     item.innerHTML = '';
@@ -113,6 +161,14 @@
             }
         })
 
+        socket.on('player_disconnected', (playerCount) => {
+            clearGame();
+            document.getElementById('modal').style.display = "block";
+            currentPlayerCount = 1;
+            user = 1;
+            moveExecuted = false;
+        });
+
         socket.emit('username');
 
         const clearGame = () => {
@@ -121,10 +177,19 @@
                 item.innerHTML = '';
             });
         }
+
+        const checkUserPlays = () => {
+            count = 0;
+            squares.forEach(element => {
+                if (element == 1 || element == 2) {
+                    count++;
+                }
+            });
+            return count;
+        }
         
         const checkWinner = (moveObj) => {
             for (let i=1;i<4;i++) {
-                console.log(i);
                 if (moveObj[i] === 1 || moveObj[i] === 2) {
                     if (moveObj[i] === moveObj[i+1] && moveObj[i+1] === moveObj[i+2]) {
                         return moveObj[i];
@@ -139,6 +204,16 @@
                     }
                 }
             }
+
+            if (moveObj[i] === 1 || moveObj[i] === 2) {
+                if (moveObj[1] === moveObj[5] && moveObj[5] === moveObj[9]) {
+                    return moveObj[5];
+                }
+                if (moveObj[3] === moveObj[5] && moveObj[5] === moveObj[7]) {
+                    return moveObj[5];
+                }
+            }
+
             return -1;
         }
 
@@ -150,7 +225,7 @@
         }
 
         const isItAlreadyMarked = (block) => {
-            return squaresSelected[block] === 1 ||  squaresSelected[block] === 2;
+            return squaresSelected[block] === 1 ||  squaresSelected[block] === 2 || currentPlayerCount === 1;
         }
 
         const showCurrentPlayer = (e) => {
