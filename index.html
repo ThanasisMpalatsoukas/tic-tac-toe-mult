@@ -2,26 +2,49 @@
 <html>
   <head>
     <title>Tic tac toe socket.io</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="/style.css">
   </head>
   <body>
     
     <div class="container mt-5">
-        <div class="row box-container">
-            <div class="col-lg-4 border" data-sq="1"></div>
-            <div class="col-lg-4 border" data-sq="2"></div>
-            <div class="col-lg-4 border" data-sq="3"></div>
+        <div class="row">
+            <div class="col-6 text-secondary"><p>Player 1 score: <p id="score-1">0</p></p></div>
+            <div class="col-6 text-secondary"><p>Player 1 score: <p id="score-2">0</p></p></div>
         </div>
-        <div class="row box-container">
-            <div class="col-lg-4 border" data-sq="4"></div>
-            <div class="col-lg-4 border" data-sq="5"></div>
-            <div class="col-lg-4 border" data-sq="6"></div>
+        <div class="row box-container no-gutters">
+            <div class="col-4">
+                <div class="box" data-sq="1"></div>
+            </div>
+            <div class="col-4">
+                <div class="box" data-sq="2"></div>
+            </div>
+            <div class="col-4">
+                <div class="box" data-sq="3"></div>
+            </div>
         </div>
-        <div class="row box-container">
-            <div class="col-lg-4 border" data-sq="7"></div>
-            <div class="col-lg-4 border" data-sq="8"></div>
-            <div class="col-lg-4 border" data-sq="9"></div>
+        <div class="row box-container no-gutters mt-2">
+            <div class="col-4">
+                <div class="box" data-sq="4"></div>
+            </div>
+            <div class="col-4">
+                <div class="box" data-sq="5"></div>
+            </div>
+            <div class="col-4">
+                <div class="box" data-sq="6"></div>
+            </div>
+        </div>
+        <div class="row box-container no-gutters mt-2">
+            <div class="col-4">
+                <div class="box" data-sq="7"></div>
+            </div>
+            <div class="col-4">
+                <div class="box" data-sq="8"></div>
+            </div>
+            <div class="col-4">
+                <div class="box" data-sq="9"></div>
+            </div>
         </div>
     </div>
 
@@ -29,10 +52,22 @@
     <script>
 
     const ticTacToe = (function(){
-        let squares = document.querySelectorAll(".box-container > div");
-        const squaresSelected = [];
+
+
+        const initializeSquares = () => {
+            for (let i=1;i<=9;i++) {
+                squaresSelected[i] = -1;
+            }
+        }
+
+        let squares = document.querySelectorAll(".box");
+        const squaresSelected = {};
+        initializeSquares();
+
         let user = -1;
         let moveExecuted = -1;
+        let w2score = document.getElementById("score-2");
+        let w1score = document.getElementById("score-1");
 
         const socket = io();
         socket.on('played', (move) => {
@@ -42,12 +77,27 @@
                 moveExecuted = false;
             }
 
-            squaresSelected.push(move.squarepos);
+            squaresSelected[move.squarepos] = move.user;
+
+            let winner = checkWinner(squaresSelected);
+            console.log(winner);
+            if (winner === 2) {
+                w2score.innerHTML = parseInt(w2score.innerHTML) + 1;
+                clearGame();
+                return
+            } else if (winner === 1) {
+                w1score.innerHTML = parseInt(w1score.innerHTML) + 1;
+                clearGame();
+                return;
+            }
             
             squares.forEach(item => {
                 console.log(item.getAttribute('data-sq') , move.squarepos);
                 if (item.getAttribute('data-sq') == move.squarepos) {
-                    item.innerHTML = move.user;
+                    let signImg = generateImagePerUser(move.user);
+                    item.innerHTML = '';
+                    item.append(signImg);
+                    return;
                 }
             });
         });
@@ -64,9 +114,43 @@
         })
 
         socket.emit('username');
+
+        const clearGame = () => {
+            initializeSquares();
+            squares.forEach(item => {
+                item.innerHTML = '';
+            });
+        }
         
+        const checkWinner = (moveObj) => {
+            for (let i=1;i<4;i++) {
+                console.log(i);
+                if (moveObj[i] === 1 || moveObj[i] === 2) {
+                    if (moveObj[i] === moveObj[i+1] && moveObj[i+1] === moveObj[i+2]) {
+                        return moveObj[i];
+                    }
+                }
+            }
+
+            for (let i=1;i<4;i++) {
+                if (moveObj[i] === 1 || moveObj[i] === 2) {
+                    if (moveObj[i] === moveObj[i+3] && moveObj[i+3] === moveObj[i+6]) {
+                        return moveObj[i];
+                    }
+                }
+            }
+            return -1;
+        }
+
+        const generateImagePerUser = (user) => {
+            const img = document.createElement("img");
+            img.src = user === 1 ? "/images/x.png" : "/images/o.png";
+            img.classList = "sign";
+            return img; 
+        }
+
         const isItAlreadyMarked = (block) => {
-            return squaresSelected.includes(block);
+            return squaresSelected[block] === 1 ||  squaresSelected[block] === 2;
         }
 
         const showCurrentPlayer = (e) => {
@@ -74,7 +158,8 @@
                 return;
             }
 
-            e.currentTarget.innerHTML = user;
+            let item = generateImagePerUser(user);
+            e.currentTarget.append(item);
         }
 
         const removeCurrentPlayer = (e) => {
@@ -87,13 +172,11 @@
 
         const addPlayerSign = (e) => {
             const squarepos = e.currentTarget.getAttribute('data-sq');
-            console.log(moveExecuted);
             if (isItAlreadyMarked(squarepos) || moveExecuted) {
                 return;
             }
 
-            e.currentTarget.innerHTML = user;
-            squaresSelected.push(squarepos);
+            e.currentTarget.append(generateImagePerUser(user));
 
             // Inform backend the player played:
             socket.emit('played', {squarepos, user});
