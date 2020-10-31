@@ -257,8 +257,8 @@
             socket.emit('played', {squarepos, user});
         }
 
-        squares.forEach(item => item.addEventListener("mouseenter", showCurrentPlayer));
-        squares.forEach(item => item.addEventListener("mouseleave", removeCurrentPlayer));
+        //squares.forEach(item => item.addEventListener("mouseenter", showCurrentPlayer));
+        //squares.forEach(item => item.addEventListener("mouseleave", removeCurrentPlayer));
         squares.forEach(item => item.addEventListener("click", addPlayerSign));
     })();
 
